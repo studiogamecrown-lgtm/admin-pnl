@@ -102,33 +102,27 @@
 (function () {
   // ── service worker ──
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] registered', reg.scope))
+      .catch(err => console.error('[SW] failed', err));
   }
 
   // ── sidebar drawer (mobile) ──
-  var sidebar  = document.getElementById('sidebar');
-  var backdrop = document.getElementById('sidebarBackdrop');
-  var menuBtn  = document.getElementById('menuBtn');
-  var closeBtn = document.getElementById('closeSidebar');
+  var sidebar    = document.getElementById('sidebar');
+  var backdrop   = document.getElementById('sidebarBackdrop');
+  var menuBtn    = document.getElementById('menuBtn');
+  var closeBtn   = document.getElementById('closeSidebar');
   var deviceList = document.getElementById('deviceList');
 
-  function openSidebar() {
-    sidebar.classList.add('open');
-    backdrop.classList.add('show');
-  }
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    backdrop.classList.remove('show');
-  }
+  function openSidebar()  { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+  function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
 
-  if (menuBtn)  menuBtn.addEventListener('click', openSidebar);
-  if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
-  if (backdrop) backdrop.addEventListener('click', closeSidebar);
-  if (deviceList) {
-    deviceList.addEventListener('click', function () {
-      if (window.innerWidth <= 900) closeSidebar();
-    });
-  }
+  if (menuBtn)    menuBtn.addEventListener('click', openSidebar);
+  if (closeBtn)   closeBtn.addEventListener('click', closeSidebar);
+  if (backdrop)   backdrop.addEventListener('click', closeSidebar);
+  if (deviceList) deviceList.addEventListener('click', function () {
+    if (window.innerWidth <= 900) closeSidebar();
+  });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeSidebar();
   });
@@ -141,44 +135,82 @@
   var iosToast = document.getElementById('iosToast');
   var deferredPrompt = null;
 
-  function showInstall() { installBtns.forEach(function (b) { b.hidden = false; }); }
-  function hideInstall() { installBtns.forEach(function (b) { b.hidden = true; }); }
-
   var isStandalone =
     window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true;
-  if (isStandalone) hideInstall();
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  console.log('[PWA] isStandalone:', isStandalone, 'isIOS:', isIOS, 'isSafari:', isSafari);
+
+  if (isStandalone) {
+    installBtns.forEach(function (b) { b.hidden = true; });
+  }
 
   window.addEventListener('beforeinstallprompt', function (e) {
+    console.log('[PWA] beforeinstallprompt fired');
     e.preventDefault();
     deferredPrompt = e;
-    showInstall();
   });
 
   window.addEventListener('appinstalled', function () {
-    hideInstall();
+    console.log('[PWA] app installed');
     deferredPrompt = null;
+    installBtns.forEach(function (b) { b.hidden = true; });
+    if (iosToast) iosToast.classList.remove('show');
   });
 
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS && !isStandalone) showInstall();
+  function showToast(html, ms) {
+    if (!iosToast) return;
+    iosToast.querySelector('.ios-toast-body').innerHTML = html;
+    iosToast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+      iosToast.classList.remove('show');
+    }, ms || 6000);
+  }
 
   function handleInstall() {
+    console.log('[PWA] install clicked. deferredPrompt:', !!deferredPrompt);
+
+    // 1. native prompt (Chrome / Edge / Android)
     if (deferredPrompt) {
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(function (choice) {
-        if (choice.outcome === 'accepted') hideInstall();
+        console.log('[PWA] userChoice:', choice.outcome);
         deferredPrompt = null;
       });
       return;
     }
-    if (isIOS && iosToast) {
-      iosToast.classList.add('show');
-      setTimeout(function () { iosToast.classList.remove('show'); }, 5500);
+
+    // 2. iOS Safari
+    if (isIOS) {
+      showToast('Tap <b>Share</b> <span style="opacity:.6">(square + arrow)</span> then <b>Add to Home Screen</b>.', 7000);
+      return;
     }
+
+    // 3. Android without prompt
+    if (/android/i.test(navigator.userAgent)) {
+      showToast('Open browser menu <b>⋮</b> → <b>Install app</b> / <b>Add to Home screen</b>.', 7000);
+      return;
+    }
+
+    // 4. Safari desktop
+    if (isSafari) {
+      showToast('Safari desktop: <b>File</b> → <b>Add to Dock</b>.', 7000);
+      return;
+    }
+
+    // 5. Chrome / Edge desktop fallback
+    showToast('Look for the <b>install icon</b> in the address bar, or <b>⋮ menu</b> → <b>Install Value Finder</b>.', 7000);
   }
 
-  installBtns.forEach(function (b) { b.addEventListener('click', handleInstall); });
+  installBtns.forEach(function (b) {
+    b.addEventListener('click', handleInstall);
+  });
+
+  // manual test hook: window.__vfInstall()
+  window.__vfInstall = handleInstall;
 })();
 </script>
 </body>
