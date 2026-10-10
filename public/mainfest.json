@@ -1,9 +1,12 @@
 {
+  "id": "/",
   "name": "Value Finder Admin",
   "short_name": "VF Admin",
+  "description": "Value Finder device administration panel.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#08080c",
   "theme_color": "#08080c",
@@ -12,7 +15,13 @@
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
