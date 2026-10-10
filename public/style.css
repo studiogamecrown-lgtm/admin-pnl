@@ -6,8 +6,57 @@
 }
 html,body{height:100%;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+
+/* ─── login ─── */
+.login-body{display:grid;place-items:center;}
+.login-wrap{width:100%;max-width:380px;padding:20px;}
+.login-card{
+  background:linear-gradient(180deg,rgba(22,22,31,0.9),rgba(16,16,25,0.95));
+  border:1px solid var(--line);border-radius:24px;padding:36px 28px 32px;
+  text-align:center;position:relative;overflow:hidden;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,0.9);
+}
+.login-card::before{
+  content:'';position:absolute;top:0;left:25%;right:25%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(229,185,74,0.7),transparent);
+}
+.login-mark{
+  width:60px;height:60px;border-radius:18px;margin:0 auto 18px;
+  background:linear-gradient(145deg,#ffd95e,#a87d1c);
+  display:grid;place-items:center;color:#1a1206;font-weight:800;font-size:24px;
+  box-shadow:0 12px 30px -10px rgba(229,185,74,0.6);
+}
+.login-title{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-0.02em;}
+.login-sub{font-size:12px;color:var(--muted);margin-bottom:28px;letter-spacing:0.05em;
+  text-transform:uppercase;font-weight:600;}
+.login-field{text-align:left;margin-bottom:14px;}
+.login-field label{display:block;font-size:11.5px;font-weight:600;color:var(--text-2);
+  margin-bottom:7px;padding-left:2px;}
+.login-field input{
+  width:100%;background:rgba(8,8,12,0.55);border:1px solid var(--line);
+  border-radius:13px;padding:14px 16px;font-family:inherit;font-size:15px;
+  font-weight:500;color:var(--text);outline:0;transition:border-color .2s, box-shadow .2s;
+}
+.login-field input:focus{
+  border-color:rgba(229,185,74,0.7);
+  box-shadow:0 0 0 4px rgba(229,185,74,0.12);
+}
+.login-btn{
+  width:100%;margin-top:8px;border:0;border-radius:14px;padding:15px;
+  background:linear-gradient(180deg,#ffd95e,#e5b94a 55%,#c99b34);
+  color:#1a1206;font-family:inherit;font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:-0.01em;
+  box-shadow:0 12px 30px -10px rgba(229,185,74,0.6),
+             inset 0 1px 0 rgba(255,255,255,0.5);
+  transition:transform .15s;
+}
+.login-btn:active{transform:scale(0.985);}
+.login-err{color:#fca5a5;font-size:12px;font-weight:500;margin-top:14px;min-height:16px;}
+
+/* ─── app ─── */
 .app{display:grid;grid-template-columns:300px 1fr;height:100vh;overflow:hidden;}
-.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:22px 16px;overflow-y:auto;}
+.sidebar{background:var(--panel);border-right:1px solid var(--line);
+  padding:22px 16px;overflow-y:auto;display:flex;flex-direction:column;}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:26px;padding:0 6px;}
 .mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(145deg,#ffd95e,#a87d1c);
   display:grid;place-items:center;color:#1a1206;font-weight:800;font-size:16px;}
@@ -15,14 +64,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .brand .sub{font-size:11px;color:var(--muted);margin-top:2px;}
 .section-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.15em;
   font-weight:700;margin:12px 6px 10px;}
-.device-list{display:flex;flex-direction:column;gap:6px;}
-.loading{padding:14px;color:var(--muted);font-size:12px;}
+.device-list{display:flex;flex-direction:column;gap:6px;flex:1;}
+.loading{padding:14px;color:var(--muted);font-size:12px;line-height:1.6;}
 .device-item{padding:12px 14px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:all .15s;}
 .device-item:hover{background:rgba(255,255,255,0.03);border-color:var(--line);}
 .device-item.active{background:rgba(229,185,74,0.08);border-color:rgba(229,185,74,0.3);}
 .device-item .label{font-size:13px;font-weight:600;margin-bottom:3px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}
 .device-item .meta{font-size:11px;color:var(--muted);}
+.logout-btn{
+  margin-top:20px;padding:11px 14px;background:transparent;
+  border:1px solid var(--line);border-radius:11px;color:var(--muted);
+  font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .18s;
+}
+.logout-btn:hover{border-color:rgba(248,113,113,0.4);color:var(--danger);
+  background:rgba(248,113,113,0.08);}
+
 .main{overflow-y:auto;padding:30px 34px;}
 .empty{display:grid;place-items:center;height:100%;text-align:center;}
 .empty-icon{font-size:50px;opacity:.3;margin-bottom:14px;}
