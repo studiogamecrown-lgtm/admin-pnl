@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Value Finder — Login</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-mark">Vf</div>
+      <div class="login-title">Value Finder</div>
+      <div class="login-sub">Admin Panel</div>
+
+      <form id="loginForm">
+        <div class="login-field">
+          <label>Username</label>
+          <input type="text" id="username" autocomplete="username" autofocus>
+        </div>
+        <div class="login-field">
+          <label>Password</label>
+          <input type="password" id="password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="login-btn">Sign in</button>
+        <div class="login-err" id="loginErr"></div>
+      </form>
+    </div>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const username = $('username').value.trim();
+  const password = $('password').value;
+  $('loginErr').textContent = '';
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (r.ok) {
+      location.href = '/';
+      return;
+    }
+    $('loginErr').textContent = 'Wrong username or password';
+  } catch (_) {
+    $('loginErr').textContent = 'Network error';
+  }
+});
+
+// already logged in? go home
+fetch('/api/me').then(r => r.json()).then(d => {
+  if (d.loggedIn) location.href = '/';
+});
+</script>
+</body>
+</html>
