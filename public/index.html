@@ -1,23 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="theme-color" content="#08080c">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Value Finder — Admin</title>
+<meta name="theme-color" content="#08080c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VF Admin">
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icon-192.png">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Value Finder — Admin</title>
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark">Vf</div>
+      <div class="mark">
+        <svg viewBox="0 0 32 32" width="22" height="22">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffe58a"/>
+              <stop offset="1" stop-color="#a87d1c"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 3 L29 16 L16 29 L3 16 Z" fill="url(#g)"/>
+          <path d="M16 9 L23 16 L16 23 L9 16 Z" fill="#08080c" opacity="0.6"/>
+          <path d="M16 13 L19 16 L16 19 L13 16 Z" fill="url(#g)"/>
+        </svg>
+      </div>
       <div>
         <div class="name">Value Finder</div>
         <div class="sub">Admin Panel</div>
@@ -29,12 +42,22 @@
   </aside>
   <main class="main" id="main">
     <div class="empty">
-      <div class="empty-icon">📱</div>
+      <div class="empty-icon">
+        <svg viewBox="0 0 48 48" width="60" height="60" opacity="0.25">
+          <path d="M24 6 L42 24 L24 42 L6 24 Z" fill="none" stroke="#e5b94a" stroke-width="2"/>
+          <path d="M24 16 L32 24 L24 32 L16 24 Z" fill="#e5b94a" opacity="0.4"/>
+        </svg>
+      </div>
       <div class="empty-title">Select a device</div>
       <div class="empty-sub">Choose a device from the sidebar.</div>
     </div>
   </main>
 </div>
 <script src="/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
 </body>
 </html>
