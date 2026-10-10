@@ -2,27 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Value Finder — Login</title>
+<meta name="theme-color" content="#08080c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VF Admin">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body class="login-body">
   <div class="login-wrap">
     <div class="login-card">
-      <div class="login-mark">Vf</div>
+      <div class="login-mark">
+        <svg viewBox="0 0 32 32" width="34" height="34">
+          <defs>
+            <linearGradient id="gl" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffe58a"/>
+              <stop offset="1" stop-color="#a87d1c"/>
+            </linearGradient>
+          </defs>
+          <path d="M16 3 L29 16 L16 29 L3 16 Z" fill="url(#gl)"/>
+          <path d="M16 9 L23 16 L16 23 L9 16 Z" fill="#08080c" opacity="0.6"/>
+          <path d="M16 13 L19 16 L16 19 L13 16 Z" fill="url(#gl)"/>
+        </svg>
+      </div>
       <div class="login-title">Value Finder</div>
       <div class="login-sub">Admin Panel</div>
 
-      <form id="loginForm">
+      <form id="loginForm" autocomplete="on">
         <div class="login-field">
-          <label>Username</label>
+          <label for="username">Username</label>
           <input type="text" id="username" autocomplete="username" autofocus>
         </div>
         <div class="login-field">
-          <label>Password</label>
+          <label for="password">Password</label>
           <input type="password" id="password" autocomplete="current-password">
         </div>
-        <button type="submit" class="login-btn">Sign in</button>
+        <button type="submit" class="login-btn" id="loginBtn">Sign in</button>
         <div class="login-err" id="loginErr"></div>
       </form>
     </div>
@@ -30,11 +50,22 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   const username = $('username').value.trim();
   const password = $('password').value;
+  const btn = $('loginBtn');
   $('loginErr').textContent = '';
+
+  if (!username || !password) {
+    $('loginErr').textContent = 'Enter username and password';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
   try {
     const r = await fetch('/api/login', {
       method: 'POST',
@@ -47,14 +78,22 @@ $('loginForm').addEventListener('submit', async e => {
     }
     $('loginErr').textContent = 'Wrong username or password';
   } catch (_) {
-    $('loginErr').textContent = 'Network error';
+    $('loginErr').textContent = 'Network error — try again';
   }
+
+  btn.disabled = false;
+  btn.textContent = 'Sign in';
 });
 
-// already logged in? go home
+// already logged in? skip login
 fetch('/api/me').then(r => r.json()).then(d => {
   if (d.loggedIn) location.href = '/';
-});
+}).catch(() => {});
+
+// register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
